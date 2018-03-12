@@ -1,3 +1,3 @@
-# spike_train
+# Rat brain decoding
 
-Spike train prediction with convolutional neural networks
+Rat brain decoding with convolutional neural networks on neuron spike train and local field potential data
