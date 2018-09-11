@@ -1,51 +1,27 @@
 import numpy as np
+from sklearn.cross_validation import StratifiedKFold
 from keras.models import Model
-from keras.layers import Dense, Dropout, Activation, Flatten, Input, merge
-from keras.layers import Convolution2D, MaxPooling2D, AveragePooling2D
+from keras.layers import Dense, Dropout, Flatten, Input, merge, Convolution2D, AveragePooling2D
+from keras.optimizers import SGD, Adam
+from keras.callbacks import ModelCheckpoint
+from keras.models import load_model
+from data import select_data
 
-lfp_tetrode = [19, 4, 21, 20, 8, 9, 16, 1, 2, 23, 22, 7, 13, 14, 15] # list of tetrodes
-tetrode_neuron = {1:4, 2:1, 4:1, 7:2, 8:4, 9:1, 13:4, 14:4, 15:5, 16:3, 19:9, 20:2, 21:6, 22:4, 23:4} # dictionary mapping between tetrodes and neuron units
 
-def tetrode_data(spike_data, lfp_data, verbose=False):
+def build_tetrode_model(tetrode_neuron):
     """
-    Organize spike and lfp data by tetrode.
-    
-    Args
-        spike_data: (3d numpy array) [trial, neuron, time]
-        lfp_data: (3d numpy array) [trial, channel, time]
-        
-    Returns
-        all_tetrode_data: (list) of 4d numpy array [trial, 1, combined dimension, time]
-    """
-    all_tetrode_data = []
-    i = 0
-    for t in sorted(lfp_tetrode):
-        j = lfp_tetrode.index(t)
-        tetrode_lfp = lfp_data[:, j, :].reshape((194, 1, 25))
-        k = tetrode_neuron[t]
-        tetrode_spike = spike_data[:, i:(i + k), :].reshape((194, k, 25))
-        tetrode_data = np.concatenate([tetrode_lfp, tetrode_spike], axis=1)
-        tetrode_data = np.expand_dims(tetrode_data, axis=1)
-        if verbose:
-            print('{} neuron/units'.format(k))
-            print('Current tetrode {}'.format(t))
-            print(tetrode_data.shape)
-        all_tetrode_data.append(tetrode_data)
-        i += k
-    return(all_tetrode_data)
+    Build tetrode convolutional neural network model for odor decoding.
 
-
-def build_tetrode_model():
-    """
-    Build tetrode-wise convolution model.
+    :param tetrode_neuron: (dictionary) mapping between tetrodes and neuron units
+    :return: model: (keras) compiled decoding model
     """
     input_layers = []
-    for t in sorted(lfp_tetrode):
+    for t in tetrode_neuron.keys():
         k = tetrode_neuron[t]
         input_layers.append(Input(shape=(1, k + 1, 25)))
     convolution_layers = []
     for i, input_layer in enumerate(input_layers):
-        t = sorted(lfp_tetrode)[i]
+        t = tetrode_neuron.keys()[i]
         k = tetrode_neuron[t]
         convolution_layers.append(Convolution2D(5, k + 1, 1, activation='relu')(input_layer))
     combo = merge(convolution_layers, mode='concat', concat_axis=1)
@@ -53,6 +29,40 @@ def build_tetrode_model():
     x = Flatten()(pooling)
     x = Dense(10, activation='relu')(x)
     x = Dropout(p=0.1)(x)
-    prediction = Dense(5, activation='softmax')(x)
+    prediction = Dense(4, activation='softmax')(x)
     model = Model(input_layers, prediction)
-    return(model)
+    model.compile(loss='categorical_crossentropy', optimizer=Adam(), metrics=['accuracy'])
+    return model
+
+
+def cross_validate(all_tetrode_data, tetrode_neuron, target, verbose=True):
+    """
+    Perform cross-validation with tetrode convolutional neural network model.
+
+    :param all_tetrode_data: (list of 4d numpy arrays) each of format [trial, 1, neuron + tetrode, time]
+    :param tetrode_neuron: (dictionary) mapping between tetrodes and neuron units
+    :param target: (2d numpy array) classification labels
+    :param verbose: (bool) whether to print each validation fold accuracy
+    :return: y_true, y_hat (2d numpy array) true and predicted labels
+    """
+    kf = StratifiedKFold(target.argmax(axis=-1), n_folds=10)
+    y_true = np.zeros(target.shape)
+    y_hat = np.zeros(target.shape)
+    i = 0
+    for train_index, test_index in kf:
+        X_train, X_test = select_data(all_tetrode_data, train_index), select_data(all_tetrode_data, test_index)
+        y_train, y_test = target[train_index, :], target[test_index, :]
+        model = build_tetrode_model(tetrode_neuron)
+        checkpointer = ModelCheckpoint('/home/linggel/neuroscience/temp_model.h5', verbose=0, save_best_only=True)
+        hist = model.fit(X_train, y_train,
+                         nb_epoch=10, batch_size=64,
+                         validation_data=(X_test, y_test),
+                         callbacks=[checkpointer], verbose=0)
+        best_model = load_model('/home/linggel/neuroscience/current_model.h5')
+        n = y_test.shape[0]
+        y_true[i:(i + n), :] = y_test
+        y_hat[i:(i + n), :] = best_model.predict(X_test)
+        i += n
+        if verbose:
+            print('Current fold validation accuracy: {}'.format(max(hist.history['val_acc'])))
+    return y_true, y_hat
