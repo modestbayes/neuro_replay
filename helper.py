@@ -22,7 +22,7 @@ def predict_all(model, all_data):
     return all_pred
 
 
-def extract_latent(intermediate_layer, spike_data, lfp_data, tetrode_ids, tetrode_units):
+def extract_latent(intermediate_layer, spike_data, lfp_data, tetrode_ids, tetrode_units, window, stride):
     """
     Extract latent representation of decoding model.
 
@@ -31,10 +31,12 @@ def extract_latent(intermediate_layer, spike_data, lfp_data, tetrode_ids, tetrod
     :param lfp_data: (3d numpy array ) LFP data of format [trial, tetrode, time]
     :param tetrode_ids: (list) of tetrode ids in the order of LFP data
     :param tetrode_units: (dict) number of neuron units on each tetrode
+    :param window: (int) time window size must be the same for training the model
+    :param stride: (int) moving window stride
     :return: (3d numpy array) latent space of format [trial, window, dim]
     """
-    spike_stack = stack_data(spike_data, 25, 10)
-    lfp_stack = stack_data(lfp_data, 25, 10)
+    spike_stack = stack_data(spike_data, window, stride)
+    lfp_stack = stack_data(lfp_data, window, stride)
     n_trial, n_window = spike_stack.shape[:2]
     all_latent = np.zeros((n_trial, n_window, 10))
 
