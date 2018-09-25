@@ -1,5 +1,5 @@
 import numpy as np
-from data import stack_data, organize_tetrode
+from data_utils import *
 
 
 def predict_all(model, all_data):
@@ -18,7 +18,7 @@ def predict_all(model, all_data):
     return all_pred
 
 
-def extract_latent(spike_data, lfp_data, intermediate_layer):
+def extract_latent(intermediate_layer, spike_data, lfp_data, tetrode_ids, tetrode_units):
     """
     Extract latent representation of decoding model.
 
@@ -32,7 +32,8 @@ def extract_latent(spike_data, lfp_data, intermediate_layer):
     n_trial, n_window = spike_stack.shape[:2]
     all_latent = np.zeros((n_trial, n_window, 10))
     for i in range(n_window):
-        test_data = organize_tetrode(spike_stack[:, i, :, :], lfp_stack[:, i, :, :])
+        test_data = organize_tetrode(spike_stack[:, i, :, :], lfp_stack[:, i, :, :],
+                                     tetrode_ids, tetrode_units, verbose=False)
         latent = intermediate_layer.predict(test_data)
         all_latent[:, i, :] = latent
     return all_latent

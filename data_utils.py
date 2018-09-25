@@ -20,21 +20,23 @@ def stack_data(all_data, window_size, stride):
     return stacked_data
 
 
-def organize_tetrode(spike_data, lfp_data, tetrode_neuron, verbose=True):
+def organize_tetrode(spike_data, lfp_data, tetrode_ids, tetrode_units, verbose=True):
     """
     Organize spike and LFP data by tetrode.
 
     :param spike_data: (3d numpy array) spike train data of format [trial, neuron, time]
     :param lfp_data: (3d numpy array ) LFP data of format [trial, tetrode, time]
-    :param tetrode_neuron: (dictionary) mapping between tetrodes and neuron units
+    :param tetrode_units: (dictionary) mapping between tetrodes and neuron units
     :param verbose: (bool) whether to print each tetrode data shape
     :return: all_tetrode_data: (list of 4d numpy arrays) each of format [trial, 1, neuron + tetrode, time]
     """
     all_tetrode_data = []
     i = 0
-    for j, t in enumerate(tetrode_neuron.keys()):
+    for j, t in enumerate(tetrode_ids):
+        k = tetrode_units[t]
+        if k == 0:
+            continue
         tetrode_lfp = np.expand_dims(lfp_data[:, j, :], axis=1)
-        k = tetrode_neuron[t]
         tetrode_spike = spike_data[:, i:(i + k), :]
         if len(tetrode_spike.shape) == 2:
             tetrode_spike = np.expand_dims(tetrode_spike, axis=1)
@@ -60,3 +62,7 @@ def select_data(all_tetrode_data, index):
     for x in all_tetrode_data:
         current_data.append(x[index, :, :, :])
     return current_data
+
+
+def valid_tetrodes(tetrode_ids, tetrode_units):
+    return [x for x in tetrode_ids if tetrode_units[x] > 0]
