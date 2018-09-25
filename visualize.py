@@ -1,5 +1,7 @@
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+from matplotlib.colors import ListedColormap
 
 
 def plot_trial_pred(prediction):
@@ -41,3 +43,17 @@ def plot_by_odor(odor_index, all_pred, target):
             plt.plot(pred_by_odor[i, :, j], color='blue', alpha=0.1)
     plt.suptitle('True odor ' + odor_names[odor_index], fontsize=14, fontweight='bold')
     plt.show()
+
+
+def plot_latent_boundary(xx, yy, Z):
+    """
+    Plot decision boundary in the latent space.
+    """
+    cmap = ListedColormap(['deepskyblue', 'tan', 'mediumseagreen', 'purple'])
+    plt.contourf(xx, yy, Z, alpha=0.5, cmap=cmap)
+    plt.yticks([], [])
+    plt.xticks([], [])
+    for k, t in enumerate(['A', 'B', 'C', 'D']):
+        xc = np.mean(xx[Z == k])
+        yc = np.mean(yy[Z == k])
+        plt.text(xc, yc, t, fontsize=12)
