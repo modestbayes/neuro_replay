@@ -89,3 +89,18 @@ def latent_grid(latent_data, pca, clf, h=0.01):
     Z = Z.reshape(xx.shape)
 
     return xx, yy, Z
+
+
+def align_rolling(trial_idx, time_idx, data_spike, scaler, decoder):
+    """
+    Predict with a rolling window around SWR events.
+    """
+    rolling_hat = np.zeros((20, 4))
+    for i in range(20):
+        current_start = time_idx - 20 + i * 2
+        current_end = current_start + 25
+        current_window = np.expand_dims(data_spike[trial_idx, :, current_start:current_end], axis=0)
+        current_data = scaler.transform(np.mean(current_window, axis=2))
+        current_hat = decoder.predict_proba(current_data)
+        rolling_hat[i, :] = current_hat
+    return rolling_hat
