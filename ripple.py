@@ -73,3 +73,18 @@ def align_all_events(swr_trial, swr_times, trial_times):
             swr_times_aligned.append([aligned_start, aligned_end])
     swr_times_aligned = np.asarray(swr_times_aligned)
     return swr_times_aligned
+
+
+def align_decoding(n_trial, swr_times_aligned, swr_trial_during):
+    """
+    Align decoding time with SWR events.
+    """
+    decoding_alignment = np.zeros((n_trial, 2))
+    for i in range(n_trial):
+        select_times = swr_times_aligned[swr_trial_during == i, :]
+        if select_times.shape[0] > 0:
+            if np.sum(select_times[:, 0] > 0.5) > 0:
+                select_times = select_times[select_times[:, 0] > 0.5, :]
+                k = np.argmax(select_times[:, 1] - select_times[:, 0])
+                decoding_alignment[i, :] = select_times[k, :]
+    return decoding_alignment
