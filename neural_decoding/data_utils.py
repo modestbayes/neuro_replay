@@ -1,6 +1,56 @@
 import numpy as np
 
 
+def filter_trials(trial_info):
+    rat_correct = trial_info[:, 0] == 1
+    in_sequence = trial_info[:, 1] == 1
+    not_odor_e = trial_info[:, 3] < 5
+    select = rat_correct & in_sequence & not_odor_e
+    return select
+
+
+def prepare_data(rat_name):
+    # load data
+    spike_data_binned = np.load('/home/linggel/neuroscience/processed_data/{}_spike_data_binned.npy'.format(rat_name))
+    lfp_data_sampled = np.load('/home/linggel/neuroscience/processed_data/{}_lfp_data_sampled.npy'.format(rat_name))
+    lfp_data_sampled = np.swapaxes(lfp_data_sampled, 1, 2)
+    trial_info = np.load('/home/linggel/neuroscience/processed_data/{}_trial_info.npy'.format(rat_name))
+    # process data
+    trial_indices = filter_trials(trial_info)
+    decoding_start = 210
+    decoding_end = decoding_start + 25
+    # scale data first
+    spike_data_binned = spike_data_binned[trial_indices, :, :]
+    spike_data_binned = (spike_data_binned - np.mean(spike_data_binned)) / np.std(spike_data_binned)
+    lfp_data_sampled = lfp_data_sampled[trial_indices, :, :]
+    decoding_data_spike = spike_data_binned[:, :, decoding_start:decoding_end]
+    decoding_data_lfp = lfp_data_sampled[:, :, decoding_start:decoding_end]
+    decoding_target = np_utils.to_categorical((trial_info[trial_indices, 3] - 1).astype(int))
+    # organize tetrode data
+    if rat_name == 'superchris':
+        tetrode_ids = [1, 10, 12, 13, 14, 15, 16, 18, 19, 2, 20, 21, 22, 23, 3, 4, 5, 6, 7, 8, 9]
+        tetrode_units = {1:3, 10:0, 12:1, 13:8, 14:4, 15:6, 16:1, 18:0, 19:4, 2:3, 
+                         20:0, 21:1, 22:5, 23:7, 3:0, 4:0, 5:0, 6:0, 7:1, 8:1, 9:1}
+    elif rat_name == 'stella':
+        tetrode_ids = [10, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 2, 3, 4, 5, 6, 7, 8, 9]
+        tetrode_units = {10:1, 12:0, 13:5, 14:7, 15:4, 16:8, 17:0, 18:0, 19:1, 20:0, 
+                     21:1, 22:1, 23:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:13, 8:4, 9:4}
+    elif rat_name == 'buchanan':
+        tetrode_ids = [10, 12, 13, 15, 16, 17, 18, 19, 1, 20, 21, 22, 23, 2, 4, 5, 6, 7, 8, 9]
+        tetrode_units = {10:0, 12:0, 13:9, 15:6, 16:0, 17:4, 18:12, 19:15, 1:0, 
+                     20:0, 21:1, 22:13, 23:8, 2:2, 4:0, 5:6, 6:3, 7:0, 8:0, 9:0}
+    elif rat_name == 'barat':
+        tetrode_ids = [10, 12, 13, 14, 15, 16, 17, 18, 19, 1, 20, 21, 22, 23, 2, 3, 4, 5, 6, 7, 8, 9]
+        tetrode_units = {10:1, 12:20, 13:12, 14:7, 15:0, 16:0, 17:11, 18:0, 19:0, 1:1, 20:0, 21:9, 22:0, 
+                         23:1, 2:0, 3:11, 4:0, 5:4, 6:0, 7:1, 8:0, 9:14}
+    elif rat_name == 'mitt':
+        tetrode_ids = [12, 13, 14, 15, 16, 17, 18, 19, 1, 20, 21, 22, 23, 2, 3, 4, 5, 6, 7, 8, 9]
+        tetrode_units = {12:16, 13:15, 14:4, 15:2, 16:6, 17:2, 18:12, 19:15, 1:0, 20:12, 21:0, 22:1, 
+                         23:4, 2:0, 3:4, 4:0, 5:0, 6:0, 7:3, 8:1, 9:7}
+    tetrode_data = organize_tetrode(decoding_data_spike, decoding_data_lfp, tetrode_ids, tetrode_units)
+    return tetrode_data, decoding_target, tetrode_ids, tetrode_units, spike_data_binned, lfp_data_sampled
+
+
 def stack_data(all_data, window_size, stride):
     """
     Divide data into smaller time windows with stride and stack them.
