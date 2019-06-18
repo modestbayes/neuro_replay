@@ -11,13 +11,16 @@ Convolutional neural networks: https://keras.io/getting-started/sequential-model
 
 ## neural_decoding
 
-`data_utils.py`
-`data_utils.py`
-`data_utils.py`
-`data_utils.py`
+Tetrode-wise convolution: for each tetrode, *convolution filters* are applied on the multivariate time series of spike train and LFP data; *pooled features* from all the tetrodes are combined before a hidden layer and output layer.
+
 
 <img src="https://raw.githubusercontent.com/modestbayes/neuro_replay/master/tetrode_conv.png" width="500">
 
+`data_utils.py`
+
+`tetrode.py`
+
+`helper.py`
 
 
 <img src="https://raw.githubusercontent.com/modestbayes/neuro_replay/master/odor_b_aggregate.png" width="800">
