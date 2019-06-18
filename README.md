@@ -13,14 +13,26 @@ Convolutional neural networks: https://keras.io/getting-started/sequential-model
 
 Tetrode-wise convolution: for each tetrode, *convolution filters* are applied on the multivariate time series of spike train and LFP data; *pooled features* from all the tetrodes are combined before a hidden layer and output layer.
 
-
 <img src="https://raw.githubusercontent.com/modestbayes/neuro_replay/master/tetrode_conv.png" width="500">
 
-`data_utils.py`
+`data_utils.py` process data arrays *(trial_info, spike_data_binned, lfp_data_sampled)* and organize data by tetrode
 
-`tetrode.py`
+`tetrode.py` build neural network model in Keras and perform cross-validation during training
 
-`helper.py`
+`helper.py` extract model hidden layer latent representation within different time windows
 
+**Result visualization**: see notebooks `tetrode_model.ipynb` and `aggregate_decoding.ipynb`
 
 <img src="https://raw.githubusercontent.com/modestbayes/neuro_replay/master/odor_b_aggregate.png" width="800">
+
+## theta_analysis
+
+Theta cycle replay analysis: theta cycles are determined with Hilbert transformation on filtered LFP data; spike train data are then aligned with theta phase rather than time.
+
+`data.py` process data arrays *(trial_info, spike_data_binned, lfp_data_sampled)* and find reference LFP tetrode
+
+`theta.py` calculate theta phase from LFP data and align spike train data
+
+`decoding.py` train LASSO decoding model with cross-validation and get model prediciton
+
+**Final results**: see notebook `final_theta_analysis.ipynb`
