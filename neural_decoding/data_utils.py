@@ -97,7 +97,7 @@ def organize_tetrode(spike_data, lfp_data, tetrode_ids, tetrode_units, verbose=T
             tetrode_spike = np.expand_dims(tetrode_spike, axis=1)
 
         tetrode_data = np.concatenate([tetrode_lfp, tetrode_spike], axis=1)
-        tetrode_data = np.expand_dims(tetrode_data, axis=1)
+        tetrode_data = np.expand_dims(tetrode_data, axis=-1)
 
         all_tetrode_data.append(tetrode_data)
 
